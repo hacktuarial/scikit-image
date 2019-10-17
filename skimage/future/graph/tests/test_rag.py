@@ -1,7 +1,8 @@
 import numpy as np
+from numpy.testing import assert_array_equal
 from skimage.future import graph
 from skimage._shared.version_requirements import is_installed
-from skimage import segmentation
+from skimage import segmentation, data
 from skimage._shared import testing
 
 
@@ -182,6 +183,22 @@ def test_ncut_stable_subgraph():
     new_labels, _, _ = segmentation.relabel_sequential(new_labels)
 
     assert new_labels.max() == 0
+
+
+def test_ncut_side_effects():
+    """Ensure the same inputs produce the same output"""
+    img = data.coffee()
+    labels1 = segmentation.slic(img, compactness=30, n_segments=400)
+    g = graph.rag_mean_color(img, labels1, mode='similarity')
+
+    # call cut_normalized with the same inputs and seed
+    labels = [None] * 10
+    for i in range(len(labels)):
+        labels[i] = graph.cut_normalized(labels1, g, in_place=True)
+
+    # outputs should be all the same
+    for i in range(len(labels) - 1):
+        assert_array_equal(labels[i], labels[i+1])
 
 
 def test_generic_rag_2d():
