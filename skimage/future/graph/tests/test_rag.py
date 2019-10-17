@@ -1,4 +1,5 @@
 import random
+from collections import Counter
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -192,24 +193,46 @@ def test_ncut_stable_subgraph():
 
 def test_in_place():
     """Ensure the inputs are not modified when using in_place=True"""
+    LABELS_MAX = 412
     img = data.coffee()
     labels1 = segmentation.slic(img, compactness=30, n_segments=400)
+    assert labels1.max() == LABELS_MAX
     g = graph.rag_mean_color(img, labels1, mode='similarity')
 
     # call cut_normalized with the same inputs and seed
-    results = [None] * 10
+    results = [None] * 20
     backup_labels = deepcopy(labels1)
     backup_g = deepcopy(g)
     for i in range(len(results)):
         random.seed(1234)
-        results[i] = graph.cut_normalized(labels1, g, in_place=False)
+        # results[i] = graph.cut_normalized(labels1, g, in_place=False)
+        # break into pieces
+        rag = g.copy()
+        labels = labels1.copy()
+        assert labels.max() == LABELS_MAX
+        for node in rag.nodes():
+            rag.add_edge(node, node, weight=1.0)
+
+        graph.graph_cut._ncut_relabel(rag, 1e-3, 10)
+        results[i] = rag
+        # map_array = np.zeros(labels.max() + 1, dtype=labels.dtype)
+        # # Mapping from old labels to new
+        # for n, d in rag.nodes(data=True):
+        #     map_array[d['labels']] = d['ncut label']
+        # results[i] = map_array
+
         # args should not be modified
         assert_array_equal(backup_labels, labels1)
         assert backup_g == g
 
     # outputs should be all the same
     for i in range(len(results) - 1):
-        assert_array_equal(results[i], results[i + 1])
+        try:
+            assert_array_equal(results[i], results[i + 1])
+        except AssertionError:
+            print(Counter(results[i].ravel()))
+            print(Counter(results[i+1].ravel()))
+            raise AssertionError
 
 
 def test_generic_rag_2d():
