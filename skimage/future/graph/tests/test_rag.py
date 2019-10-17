@@ -1,3 +1,4 @@
+import itertools
 import random
 from collections import Counter
 
@@ -200,40 +201,40 @@ def test_in_place():
     g = graph.rag_mean_color(img, labels1, mode='similarity')
 
     # call cut_normalized with the same inputs and seed
-    results = [None] * 20
+    results = [None] * 4
     backup_labels = deepcopy(labels1)
     backup_g = deepcopy(g)
     for i in range(len(results)):
         random.seed(1234)
-        # results[i] = graph.cut_normalized(labels1, g, in_place=False)
+        print("starting new iteration")
+        results[i] = graph.cut_normalized(labels1, g, in_place=False, thresh=1e-8)
         # break into pieces
-        rag = g.copy()
-        labels = labels1.copy()
-        assert labels.max() == LABELS_MAX
-        for node in rag.nodes():
-            rag.add_edge(node, node, weight=1.0)
-
-        graph.graph_cut._ncut_relabel(rag, 1e-3, 10)
-        results[i] = rag
-        # map_array = np.zeros(labels.max() + 1, dtype=labels.dtype)
-        # # Mapping from old labels to new
-        # for n, d in rag.nodes(data=True):
-        #     map_array[d['labels']] = d['ncut label']
-        # results[i] = map_array
-
+        # rag = g.copy()
+        # labels = labels1.copy()
+        # assert labels.max() == LABELS_MAX
+        # for node in rag.nodes():
+        #     rag.add_edge(node, node, weight=1.0)
+        #
+        # graph.graph_cut._ncut_relabel(rag, 1e-3, 10)
+        # results[i] = rag
         # args should not be modified
         assert_array_equal(backup_labels, labels1)
         assert backup_g == g
 
     # outputs should be all the same
     for i in range(len(results) - 1):
-        try:
-            assert_array_equal(results[i], results[i + 1])
-        except AssertionError:
-            print(Counter(results[i].ravel()))
-            print(Counter(results[i+1].ravel()))
-            raise AssertionError
-
+        # assert results[i] == results[i+1]
+        assert_array_equal(results[i], results[i + 1])
+        # except AssertionError:
+        #     c1 = Counter(results[i].ravel())
+        #     c2 = Counter(results[i+1].ravel())
+        #     for key in set(c1).union(c2):
+        #         if not (key in c1 and key in c2):
+        #             print("One is missing {}".format(key))
+        #         if c1[key] != c2[key]:
+        #             print("Unequal {}: {}, {}".format(key, c1[key], c2[key]))
+        #     raise AssertionError
+        #
 
 def test_generic_rag_2d():
     labels = np.array([[1, 2], [3, 4]], dtype=np.uint8)

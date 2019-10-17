@@ -268,8 +268,12 @@ def _ncut_relabel(rag, thresh, num_cuts):
         d2.data = np.reciprocal(np.sqrt(d2.data, out=d2.data), out=d2.data)
 
         # Refer Shi & Malik 2001, Equation 7, Page 891
-        vals, vectors = linalg.eigsh(d2 * (d - w) * d2, which='SM',
-                                     k=min(100, m - 2))
+        k = min(100, m - 2)
+        A = d2 * (d - w) * d2
+        np.random.seed(236978)
+        v0 = np.random.rand(min(A.shape))
+        vals, vectors = linalg.eigsh(A, which='SM',
+                                     v0=v0, k=k)
 
         # Pick second smallest eigenvector.
         # Refer Shi & Malik 2001, Section 3.2.3, Page 893
@@ -278,9 +282,12 @@ def _ncut_relabel(rag, thresh, num_cuts):
         ev = vectors[:, index2]
 
         cut_mask, mcut = get_min_ncut(ev, d, w, num_cuts)
+        print("Considering whether to recursively subdivide, mcut={}, sizes={}".format(
+            mcut, (cut_mask.sum(), (1-cut_mask).sum())))
         if (mcut < thresh):
             # Sub divide and perform N-cut again
             # Refer Shi & Malik 2001, Section 3.2.5, Page 893
+            # these must be "pointers" to the original RAG instance
             sub1, sub2 = partition_by_cut(cut_mask, rag)
 
             _ncut_relabel(sub1, thresh, num_cuts)

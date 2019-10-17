@@ -292,8 +292,19 @@ class RAG(nx.Graph):
         super(RAG, self).add_node(n)
 
     def __eq__(self, other):
-        return (set(self.nodes) == set(other.nodes)) and (self.edges == other.edges)
-    # Check edges, too
+        if set(self.nodes) != set(other.nodes):
+            return False
+        for node in self.nodes:
+            for key, this_val in self.nodes[node].items():
+                other_val = other.nodes[node][key]
+                if isinstance(this_val, np.ndarray):
+                    equal = (this_val == other_val).all()
+                else:
+                    equal = (this_val == other_val)
+                if not equal:
+                    print(f"Unequal! {node}/'{key}':{this_val} != {other_val}")
+                    return False
+        return True
 
 
 def rag_mean_color(image, labels, connectivity=2, mode='distance',
