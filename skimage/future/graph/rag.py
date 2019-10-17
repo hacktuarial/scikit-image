@@ -291,6 +291,10 @@ class RAG(nx.Graph):
         .. seealso:: :func:`networkx.Graph.add_node`."""
         super(RAG, self).add_node(n)
 
+    def __eq__(self, other):
+        return (set(self.nodes) == set(other.nodes)) and (self.edges == other.edges)
+    # Check edges, too
+
 
 def rag_mean_color(image, labels, connectivity=2, mode='distance',
                    sigma=255.0):

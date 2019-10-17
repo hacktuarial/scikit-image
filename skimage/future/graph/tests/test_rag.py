@@ -1,9 +1,14 @@
+import random
+
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
+from copy import deepcopy
+
 from skimage.future import graph
 from skimage._shared.version_requirements import is_installed
 from skimage import segmentation, data
 from skimage._shared import testing
+
 
 
 def max_edge(g, src, dst, n):
@@ -185,20 +190,26 @@ def test_ncut_stable_subgraph():
     assert new_labels.max() == 0
 
 
-def test_ncut_side_effects():
-    """Ensure the same inputs produce the same output"""
+def test_in_place():
+    """Ensure the inputs are not modified when using in_place=True"""
     img = data.coffee()
     labels1 = segmentation.slic(img, compactness=30, n_segments=400)
     g = graph.rag_mean_color(img, labels1, mode='similarity')
 
     # call cut_normalized with the same inputs and seed
-    labels = [None] * 10
-    for i in range(len(labels)):
-        labels[i] = graph.cut_normalized(labels1, g, in_place=True)
+    results = [None] * 10
+    backup_labels = deepcopy(labels1)
+    backup_g = deepcopy(g)
+    for i in range(len(results)):
+        random.seed(1234)
+        results[i] = graph.cut_normalized(labels1, g, in_place=False)
+        # args should not be modified
+        assert_array_equal(backup_labels, labels1)
+        assert backup_g == g
 
     # outputs should be all the same
-    for i in range(len(labels) - 1):
-        assert_array_equal(labels[i], labels[i+1])
+    for i in range(len(results) - 1):
+        assert_array_equal(results[i], results[i + 1])
 
 
 def test_generic_rag_2d():
